@@ -55,6 +55,6 @@ defmodule Logger.Backends.JSON do
 
   defp event_json(level, msg, _ts, [pid: pid, module: module, function: function, line: line], metadata) do
     pid_str = :io_lib.fwrite('~p', [pid]) |> to_string
-    JSON.encode! %{level: level, msg: msg, pid: pid_str, module: module, function: function, line: line, metadata: metadata}
+    JSON.encode! %{level: level, message: msg, pid: pid_str, module: module, function: function, line: line, metadata: metadata}
   end
 end
