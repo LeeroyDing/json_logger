@@ -6,7 +6,7 @@ defmodule Logger.Backends.JSON.Mixfile do
      version: "0.1.0",
      elixir: ">= 1.0.0",
      deps: deps,
-     description: "A Simple library for logging with JSON, best suited with Logstash.",
+     description: "A simple library for logging with JSON, best suited with Logstash.",
      package: package,
      source_url: "https://github.com/LeeroyDing/json_logger"]
   end
