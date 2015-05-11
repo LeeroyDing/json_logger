@@ -9,7 +9,7 @@ Issues and PRs are welcome.
 
 ## Dependencies
 
-This project is 
+This project requires [json](https://hex.pm/packages/json).
 
 ## Configuration
 
