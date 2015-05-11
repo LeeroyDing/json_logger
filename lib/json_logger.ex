@@ -49,6 +49,7 @@ defmodule Logger.Backends.JSON do
 
   defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:udp, host, port, socket}}) do
     json = event_json(level, msg, ts, md, metadata)
+    host = host |> to_char_list
     :gen_udp.send socket, host, port, [json]
   end
 
