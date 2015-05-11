@@ -3,30 +3,25 @@ defmodule Logger.Backends.JSON.Mixfile do
 
   def project do
     [app: :json_logger,
-     version: "0.0.1",
-     elixir: "~> 1.0",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     deps: deps]
+     version: "0.1.0",
+     elixir: ">= 1.0.0",
+     deps: deps,
+     description: "A Simple library for logging with JSON, best suited with Logstash.",
+     package: package,
+     source_url: "https://github.com/LeeroyDing/json_logger"]
   end
 
-  # Configuration for the OTP application
-  #
-  # Type `mix help compile.app` for more information
-  def application do
-    [applications: [:logger]]
-  end
+  def application, do: []
 
-  # Dependencies can be Hex packages:
-  #
-  #   {:mydep, "~> 0.3.0"}
-  #
-  # Or git/path repositories:
-  #
-  #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
-  #
-  # Type `mix help deps` for more examples and options
   defp deps do
     [{:json, "~> 0.3.2"}]
+  end
+
+  def package do
+    [
+      contributors: ["Leeroy Ding"],
+      licenses: ["Apache License 2.0"],
+      links: %{"GitHub" => "https://github.com/LeeroyDing/json_logger"}
+    ]
   end
 end
