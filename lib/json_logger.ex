@@ -1,6 +1,8 @@
 defmodule Logger.Backends.JSON do
   use GenEvent
 
+  @tcp_options [:binary, {:packet, 0}, {:nodelay, true}, {:keepalive, true}]
+
   def init(_) do
     if user = Process.whereis(:user) do
       Process.group_leader(self(), user)
@@ -25,6 +27,11 @@ defmodule Logger.Backends.JSON do
     {:ok, state}
   end
 
+  def handle_event({:tcp_closed, socket}, %{output: {:tcp, host, port, socket}} = state) do
+    {:ok, socket} = :gen_tcp.connect(host, port, @tcp_options)
+    {:ok, %{state | output: {:tcp, host, port, socket}}}
+  end
+
   ## Helpers
 
   defp configure(options) do
@@ -40,7 +47,9 @@ defmodule Logger.Backends.JSON do
                  {:ok, socket} = :gen_udp.open 0
                  {:udp, host, port, socket}
                {:tcp, host, port} ->
-                 {:tcp, host, port}
+                 host = host |> to_char_list
+                 {:ok, socket} = :gen_tcp.connect(host, port, @tcp_options)
+                 {:tcp, host, port, socket}
              end
     %{metadata: metadata, level: level, output: output}
   end
@@ -55,12 +64,10 @@ defmodule Logger.Backends.JSON do
     :gen_udp.send socket, host, port, [json]
   end
 
-  defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:tcp, host, port}}) do
+  defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:tcp, host, port, socket}}) do
     json = event_json(level, msg, ts, md, metadata)
-    host = host |> to_char_list
-    {:ok, socket} = :gen_tcp.connect(host, port, [:binary])
     socket
-    |> :gen_tcp.send([json])
+    |> :gen_tcp.send([json <> "\n"])
     |> :gen_tcp.close
   end
 
