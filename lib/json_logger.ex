@@ -39,6 +39,8 @@ defmodule Logger.Backends.JSON do
                {:udp, host, port} ->
                  {:ok, socket} = :gen_udp.open 0
                  {:udp, host, port, socket}
+               {:tcp, host, port} ->
+                 {:tcp, host, port}
              end
     %{metadata: metadata, level: level, output: output}
   end
@@ -51,6 +53,15 @@ defmodule Logger.Backends.JSON do
     json = event_json(level, msg, ts, md, metadata)
     host = host |> to_char_list
     :gen_udp.send socket, host, port, [json]
+  end
+
+  defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:tcp, host, port}}) do
+    json = event_json(level, msg, ts, md, metadata)
+    host = host |> to_char_list
+    {:ok, socket} = :gen_tcp.connect(host, port, [:binary])
+    socket
+    |> :gen_tcp.send([json])
+    |> :gen_tcp.close
   end
 
   defp event_json(level, msg, _ts, [pid: pid, module: module, function: function, line: line], metadata) do
