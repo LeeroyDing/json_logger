@@ -19,7 +19,7 @@ defmodule Logger.Backends.JSON.Mixfile do
 
   def package do
     [
-      contributors: ["Leeroy Ding"],
+      maintainers: ["Leeroy Ding"],
       licenses: ["Apache License 2.0"],
       links: %{"GitHub" => "https://github.com/LeeroyDing/json_logger"}
     ]
