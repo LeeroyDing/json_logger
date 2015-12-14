@@ -18,10 +18,12 @@ This project requires [json](https://hex.pm/packages/json).
 JSON Logger currently provides very few options:
 
 * __level__: The minimal level of logging. There's no default of this option. Example: `level: :warn`
-* __output__: The output of the log. Must be either `:console` or `{:udp, host, port}`. Example: `output: {:udp, "localhost", 514}`
+* __output__: The output of the log. Must be either `:console` or `{:udp, host, port}` or `{:tcp, host, port}. Example: `output: {:udp, "localhost", 514}`
 * __metadata__: Whatever else you want in the log. Example: `metadata: "Some very important project"`
 
 Example configuration: `config :logger, :json_logger, level: :info, output: {:udp, "localhost", 514}`
+
+**TCP support is still experimental, please submit issues that you encounter.**
 
 
 ### In your application
@@ -44,7 +46,7 @@ end
 You need to add this backend to your `Logger`, preferably put this in your `Application`'s `start/2`.
 
 ```
-Logger.add_backend Logger.Backends.JSON_Logger
+Logger.add_backend Logger.Backends.JSONLogger
 ```
 
 ### If you wish to use Logstash with this library
