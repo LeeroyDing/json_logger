@@ -1,7 +1,6 @@
 defmodule Logger.Backends.JSON do
+  alias Logger.Backends.JSON.TCPClient
   use GenEvent
-
-  @tcp_options [:binary, {:packet, 0}, {:nodelay, true}, {:keepalive, true}]
 
   def init(_) do
     if user = Process.whereis(:user) do
@@ -12,8 +11,8 @@ defmodule Logger.Backends.JSON do
     end
   end
 
-  def handle_call({:configure, options}, _state) do
-    {:ok, :ok, configure(options)}
+  def handle_call({:configure, options}, state) do
+    {:ok, :ok, configure(options, state)}
   end
 
   def handle_event({_level, gl, _event}, state) when node(gl) != node() do
@@ -27,12 +26,31 @@ defmodule Logger.Backends.JSON do
     {:ok, state}
   end
 
-  def handle_event({:tcp_closed, socket}, %{output: {:tcp, host, port, socket}} = state) do
-    {:ok, socket} = :gen_tcp.connect(host, port, @tcp_options)
-    {:ok, %{state | output: {:tcp, host, port, socket}}}
+  def terminate(_reason, %{output: {:udp, _host, _port, socket}}) do
+    :gen_udp.close(socket)
+    :ok
   end
 
+  def terminate(_reason, %{output: {:tcp, client}}) do
+    TCPClient.stop client
+    :ok
+  end
+  
   ## Helpers
+
+  defp configure(options, %{output: {:udp, _host, _port, socket}}) do
+    :gen_udp.close(socket)
+    configure(options)
+  end
+  
+  defp configure(options, %{output: {:tcp, client}}) do
+    TCPClient.stop client
+    configure(options)
+  end
+  
+  defp configure(options, _state) do
+    configure(options)
+  end
 
   defp configure(options) do
     json_logger = Keyword.merge(Application.get_env(:logger, :json_logger, []), options)
@@ -45,11 +63,12 @@ defmodule Logger.Backends.JSON do
                :console -> :console
                {:udp, host, port} ->
                  {:ok, socket} = :gen_udp.open 0
+                 host = host |> to_char_list
                  {:udp, host, port, socket}
                {:tcp, host, port} ->
                  host = host |> to_char_list
-                 {:ok, socket} = :gen_tcp.connect(host, port, @tcp_options)
-                 {:tcp, host, port, socket}
+                 {:ok, tcp_client} = TCPClient.start_link(host, port)
+                 {:tcp, tcp_client}
              end
     %{metadata: metadata, level: level, output: output}
   end
@@ -60,15 +79,12 @@ defmodule Logger.Backends.JSON do
 
   defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:udp, host, port, socket}}) do
     json = event_json(level, msg, ts, md, metadata)
-    host = host |> to_char_list
     :gen_udp.send socket, host, port, [json]
   end
 
-  defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:tcp, host, port, socket}}) do
+  defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:tcp, client}}) do
     json = event_json(level, msg, ts, md, metadata)
-    socket
-    |> :gen_tcp.send([json <> "\n"])
-    |> :gen_tcp.close
+    TCPClient.log_msg client, json
   end
 
   defp event_json(level, msg, _ts, [pid: pid, module: module, function: function, line: line], metadata) do

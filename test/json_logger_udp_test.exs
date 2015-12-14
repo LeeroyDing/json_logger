@@ -3,16 +3,13 @@ defmodule Logger.Backends.JSON.UDPTest do
   require Logger
 
   @backend {Logger.Backends.JSON, :test}
-  Logger.add_backend @backend
 
   @message "Yo"
   @metadata "Very important data"
   @level :debug
 
-  setup do
-    Logger.add_backend @backend
-    Logger.remove_backend :console
-    {:ok, server} = :gen_udp.open(0)
+  setup_all do
+    {:ok, server} = :gen_udp.open 0, [:binary, {:active, false}]
     {:ok, port} = :inet.port(server)
     config [level: @level, metadata: @metadata, output: {:udp, "localhost", port}]
     on_exit fn ->
@@ -20,55 +17,39 @@ defmodule Logger.Backends.JSON.UDPTest do
     end
     {:ok, server: server}
   end
-  
-  test "sends debug message", %{server: server}do
+
+  test "sends debug message via UDP", %{server: server}do
     Logger.debug @message
-    response_test = receive do
-      {:udp, ^server, _ip, _port, message} ->
-        assert {:ok, result} = JSON.decode(message)
-        assert result["level"] == to_string(@level)
-        assert result["message"] == @message
-        assert result["metadata"] == @metadata
-        {:ok}
-      _ -> {:error, :nomatch}
-      after 10000 -> {:error, :timeout}
-    end
-    assert response_test == {:ok}
+    assert {:ok, {_ip, _port, message}} = :gen_udp.recv(server, 0, 500)
+    assert {:ok, result} = JSON.decode(message)
+    assert result["level"] == to_string(@level)
+    assert result["message"] == @message
+    assert result["metadata"] == @metadata
   end
 
   test "can change metadata", %{server: server} do
     new_metadata = "New metadata"
     config [metadata: new_metadata]
     Logger.debug @message
-    response_test = receive do
-      {:udp, ^server, _ip, _port, message} ->
-        assert {:ok, result} = JSON.decode(message)
-        assert result["level"] == to_string(@level)
-        assert result["message"] == @message
-        assert result["metadata"] == new_metadata
-        {:ok}
-      _ -> {:error, :nomatch}
-      after 1000 -> {:error, :timeout}
-    end
-    assert response_test == {:ok}
+    assert {:ok, {_ip, _port, message}} = :gen_udp.recv(server, 0, 500)
+    assert {:ok, result} = JSON.decode(message)
+    assert result["level"] == to_string(@level)
+    assert result["message"] == @message
+    assert result["metadata"] == new_metadata
+    config [metadata: @metadata]
   end
 
-  test "can modify log level", %{server: server} do
+  test "can use info level", %{server: server} do
     config [level: :info]
     Logger.debug @message
-    refute_receive {:udp, ^server, _ip, _port, _message}
+    assert {:error, :timeout} = :gen_udp.recv(server, 0, 500)
     Logger.info @message
-    response_test = receive do
-      {:udp, ^server, _ip, _port, message} ->
-        assert {:ok, result} = JSON.decode(message)
-        assert result["level"] == "info"
-        assert result["message"] == @message
-        assert result["metadata"] == @metadata
-        {:ok}
-      _ -> {:error, :nomatch}
-      after 1000 -> {:error, :timeout}
-    end
-    assert response_test == {:ok}
+    assert {:ok, {_ip, _port, message}} = :gen_udp.recv(server, 0, 500)
+    assert {:ok, result} = JSON.decode(message)
+    assert result["level"] == "info"
+    assert result["message"] == @message
+    assert result["metadata"] == @metadata
+    config [level: @level]
   end
 
   defp config(opts) do
