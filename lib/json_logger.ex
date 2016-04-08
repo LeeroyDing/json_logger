@@ -87,8 +87,8 @@ defmodule Logger.Backends.JSON do
     TCPClient.log_msg client, json
   end
 
-  defp event_json(level, msg, _ts, [pid: pid, module: module, function: function, line: line], metadata) do
-    pid_str = :io_lib.fwrite('~p', [pid]) |> to_string
-    JSON.encode! %{level: level, message: msg, pid: pid_str, module: module, function: function, line: line, metadata: metadata}
+  defp event_json(level, msg, _ts, md, metadata) do
+    pid_str = :io_lib.fwrite('~p', [md[:pid]]) |> to_string
+    JSON.encode! %{level: level, message: msg, pid: pid_str, module: md[:module], function: md[:function], line: md[:line], metadata: metadata}
   end
 end
