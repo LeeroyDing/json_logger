@@ -46,7 +46,7 @@ end
 You need to add this backend to your `Logger`, preferably put this in your `Application`'s `start/2`.
 
 ```
-Logger.add_backend Logger.Backends.JSONLogger
+Logger.add_backend Logger.Backends.JSON
 ```
 
 ### If you wish to use Logstash with this library
