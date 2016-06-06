@@ -3,7 +3,7 @@ defmodule Logger.Backends.JSON.Mixfile do
 
   def project do
     [app: :json_logger,
-     version: "0.5.1",
+     version: "0.6.0",
      elixir: ">= 1.0.0",
      deps: deps,
      description: "A simple library for logging with JSON, best suited with Logstash.",
