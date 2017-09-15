@@ -35,19 +35,19 @@ defmodule Logger.Backends.JSON do
     TCPClient.stop client
     :ok
   end
-  
+
   ## Helpers
 
   defp configure(options, %{output: {:udp, _host, _port, socket}}) do
     :gen_udp.close(socket)
     configure(options)
   end
-  
+
   defp configure(options, %{output: {:tcp, client}}) do
     TCPClient.stop client
     configure(options)
   end
-  
+
   defp configure(options, _state) do
     configure(options)
   end
@@ -57,7 +57,6 @@ defmodule Logger.Backends.JSON do
     Application.put_env(:logger, :json_logger, json_logger)
 
     level    = Keyword.get(json_logger, :level)
-    metadata = Keyword.get(json_logger, :metadata, [])
     output   = Keyword.get(json_logger, :output, :console)
     output = case output do
                :console -> :console
@@ -70,25 +69,31 @@ defmodule Logger.Backends.JSON do
                  {:ok, tcp_client} = TCPClient.start_link(host, port)
                  {:tcp, tcp_client}
              end
-    %{metadata: metadata, level: level, output: output}
+    %{level: level, output: output}
   end
 
-  defp log_event(level, msg, ts, md, %{metadata: metadata, output: :console}) do
-    IO.puts event_json(level, msg, ts, md, metadata)
+  defp log_event(level, msg, ts, md, %{output: :console}) do
+    IO.puts event_json(level, msg, ts, md)
   end
 
-  defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:udp, host, port, socket}}) do
-    json = event_json(level, msg, ts, md, metadata)
+  defp log_event(level, msg, ts, md, %{output: {:udp, host, port, socket}}) do
+    json = event_json(level, msg, ts, md)
     :gen_udp.send socket, host, port, [json]
   end
 
-  defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:tcp, client}}) do
-    json = event_json(level, msg, ts, md, metadata)
+  defp log_event(level, msg, ts, md, %{output: {:tcp, client}}) do
+    json = event_json(level, msg, ts, md)
     TCPClient.log_msg client, json
   end
 
-  defp event_json(level, msg, _ts, md, metadata) do
+  defp event_json(level, msg, _ts, md) do
     pid_str = :io_lib.fwrite('~p', [md[:pid]]) |> to_string
-    JSON.encode! %{level: level, message: msg, pid: pid_str, module: md[:module], function: md[:function], line: md[:line], metadata: metadata}
+
+    %{level: level, message: msg, pid: pid_str}
+    |> Map.merge(md |> Enum.map(&stringify_values/1) |> Enum.into(Map.new))
+    |> JSON.encode!
   end
+
+  defp stringify_values({k, v}) when is_binary(v), do: {k, v}
+  defp stringify_values({k, v}), do: {k, inspect(v)}
 end

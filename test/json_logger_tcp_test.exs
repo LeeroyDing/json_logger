@@ -5,13 +5,12 @@ defmodule Logger.Backends.JSON.TCPTest do
   @backend {Logger.Backends.JSON, :test}
 
   @message "Yo"
-  @metadata "Very important data"
   @level :debug
 
   setup_all do
     {:ok, server} = :gen_tcp.listen 0, [:binary, {:active, false}, {:packet, 0}, {:reuseaddr, true}]
     {:ok, port} = :inet.port server
-    config [level: @level, metadata: @metadata, output: {:tcp, "localhost", port}]
+    config [level: @level, output: {:tcp, "localhost", port}]
     on_exit fn ->
       :gen_tcp.close(server)
     end
@@ -26,7 +25,6 @@ defmodule Logger.Backends.JSON.TCPTest do
     assert {:ok, result} = JSON.decode(message)
     assert result["level"] == to_string(@level)
     assert result["message"] == @message
-    assert result["metadata"] == @metadata
   end
 
   defp config(opts) do
