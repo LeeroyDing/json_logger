@@ -26,6 +26,10 @@ defmodule Logger.Backends.JSON do
     {:ok, state}
   end
 
+  def handle_event(:flush, state) do
+    {:ok, state}
+  end
+
   def terminate(_reason, %{output: {:udp, _host, _port, socket}}) do
     :gen_udp.close(socket)
     :ok
