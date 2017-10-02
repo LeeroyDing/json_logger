@@ -93,7 +93,7 @@ defmodule Logger.Backends.JSON do
   defp event_json(level, msg, _ts, md) do
     pid_str = :io_lib.fwrite('~p', [md[:pid]]) |> to_string
 
-    %{level: level, message: msg, pid: pid_str}
+    %{level: level, message: msg, pid: pid_str, node: node()}
     |> Map.merge(md |> Enum.map(&stringify_values/1) |> Enum.into(Map.new))
     |> JSON.encode!
   end
