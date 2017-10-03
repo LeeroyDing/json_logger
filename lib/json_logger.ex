@@ -48,9 +48,17 @@ defmodule Logger.Backends.JSON do
   defp event_json(level, msg, _ts, md) do
     pid_str = :io_lib.fwrite('~p', [md[:pid]]) |> to_string
 
-    %{level: level, message: msg, pid: pid_str, node: node()}
+    data = %{level: level, message: msg, pid: pid_str, node: node()}
     |> Map.merge(md |> Enum.map(&stringify_values/1) |> Enum.into(Map.new))
-    |> Poison.encode!
+    try do
+      Poison.encode!
+    rescue
+      err ->
+        IO.puts("Failed to JSON encode log message:")
+        IO.puts(inspect data)
+        IO.puts("Error:")
+        IO.puts(inspect err)
+    end
   end
 
   defp stringify_values({k, v}) when is_binary(v), do: {k, v}
