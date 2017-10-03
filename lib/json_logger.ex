@@ -50,7 +50,7 @@ defmodule Logger.Backends.JSON do
 
     %{level: level, message: msg, pid: pid_str, node: node()}
     |> Map.merge(md |> Enum.map(&stringify_values/1) |> Enum.into(Map.new))
-    |> JSON.encode!
+    |> Poison.encode!
   end
 
   defp stringify_values({k, v}) when is_binary(v), do: {k, v}
