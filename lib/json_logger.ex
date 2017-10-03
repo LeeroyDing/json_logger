@@ -45,7 +45,7 @@ defmodule Logger.Backends.JSON do
     IO.puts event_json(level, msg, ts, md)
   end
 
-  defp event_json(level, msg, _ts, md) when is_binary(msg) do
+  defp event_json(level, msg, ts, md) when is_binary(msg) do
     pid_str = :io_lib.fwrite('~p', [md[:pid]]) |> to_string
 
     data = %{level: level, message: msg, pid: pid_str, node: node()}
