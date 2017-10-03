@@ -45,7 +45,7 @@ defmodule Logger.Backends.JSON do
     IO.puts event_json(level, msg, ts, md)
   end
 
-  defp event_json(level, msg, _ts, md) do
+  defp event_json(level, msg, _ts, md) when is_binary(msg) do
     pid_str = :io_lib.fwrite('~p', [md[:pid]]) |> to_string
 
     data = %{level: level, message: msg, pid: pid_str, node: node()}
@@ -53,13 +53,13 @@ defmodule Logger.Backends.JSON do
     try do
       Poison.encode!(data)
     rescue
-      err ->
-        IO.puts("Failed to JSON encode log message:")
-        IO.puts(inspect data)
-        IO.puts("Error:")
-        IO.puts(inspect err)
-        "#{msg} (failed to JSON encode metadata)"
+      err -> event_json(level, "#{msg} (failed to serialize metadata)", ts, %{})
     end
+
+  end
+  
+  defp event_json(level, msg, ts, md) do
+    event_json(level, inspect(msg), ts, md)
   end
 
   defp stringify_values({k, v}) when is_binary(v), do: {k, v}
