@@ -1,5 +1,4 @@
 defmodule Logger.Backends.JSON do
-  alias Logger.Backends.JSON.TCPClient
   use GenEvent
 
   def init(_) do
@@ -29,29 +28,6 @@ defmodule Logger.Backends.JSON do
   def handle_event(:flush, state) do
     {:ok, state}
   end
-
-  def terminate(_reason, %{output: {:udp, _host, _port, socket}}) do
-    :gen_udp.close(socket)
-    :ok
-  end
-
-  def terminate(_reason, %{output: {:tcp, client}}) do
-    TCPClient.stop client
-    :ok
-  end
-
-  ## Helpers
-
-  defp configure(options, %{output: {:udp, _host, _port, socket}}) do
-    :gen_udp.close(socket)
-    configure(options)
-  end
-
-  defp configure(options, %{output: {:tcp, client}}) do
-    TCPClient.stop client
-    configure(options)
-  end
-
   defp configure(options, _state) do
     configure(options)
   end
@@ -60,34 +36,13 @@ defmodule Logger.Backends.JSON do
     json_logger = Keyword.merge(Application.get_env(:logger, :json_logger, []), options)
     Application.put_env(:logger, :json_logger, json_logger)
 
-    level    = Keyword.get(json_logger, :level)
-    output   = Keyword.get(json_logger, :output, :console)
-    output = case output do
-               :console -> :console
-               {:udp, host, port} ->
-                 {:ok, socket} = :gen_udp.open 0
-                 host = host |> to_char_list
-                 {:udp, host, port, socket}
-               {:tcp, host, port} ->
-                 host = host |> to_char_list
-                 {:ok, tcp_client} = TCPClient.start_link(host, port)
-                 {:tcp, tcp_client}
-             end
-    %{level: level, output: output}
+    level = Keyword.get(json_logger, :level)
+
+    %{level: level, output: :console}
   end
 
   defp log_event(level, msg, ts, md, %{output: :console}) do
     IO.puts event_json(level, msg, ts, md)
-  end
-
-  defp log_event(level, msg, ts, md, %{output: {:udp, host, port, socket}}) do
-    json = event_json(level, msg, ts, md)
-    :gen_udp.send socket, host, port, [json]
-  end
-
-  defp log_event(level, msg, ts, md, %{output: {:tcp, client}}) do
-    json = event_json(level, msg, ts, md)
-    TCPClient.log_msg client, json
   end
 
   defp event_json(level, msg, _ts, md) do
