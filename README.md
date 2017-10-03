@@ -9,7 +9,7 @@ Issues and PRs are welcome.
 
 ## Dependencies
 
-This project requires [json](https://hex.pm/packages/json).
+This project requires [poison](https://hex.pm/packages/poison).
 
 ## Configuration
 
@@ -18,27 +18,10 @@ This project requires [json](https://hex.pm/packages/json).
 JSON Logger currently provides very few options:
 
 * __level__: The minimal level of logging. There's no default of this option. Example: `level: :warn`
-* __output__: The output of the log. Must be either `:console` or `{:udp, host, port}` or `{:tcp, host, port}. Example: `output: {:udp, "localhost", 514}`
 
-Example configuration: `config :logger, :json_logger, level: :info, output: {:udp, "localhost", 514}`
+Example configuration: `config :logger, :json_logger, level: :info`
 
 **TCP support is still experimental, please submit issues that you encounter.**
-
-
-### In your application
-
-You should add `json_logger` to your `mix.exs` as well. This step may not be necessary (if you know why please tell me).
-
-```
-defmodule MyMod.Mixfile do
-  # ...
-  def application do
-    [applications: [:logger, :json_logger],
-     mod: {MyMod, []}]
-  end
-  # ...
-end
-```
 
 ### Adding the logger backend
 
@@ -47,30 +30,3 @@ You need to add this backend to your `Logger`, preferably put this in your `Appl
 ```
 Logger.add_backend Logger.Backends.JSON
 ```
-
-### If you wish to use Logstash with this library
-
-Here is an example logstash configuration:
-
-```
-input {
-  udp {
-    port => 514
-    type => "elixir_json_logging"
-  }
-}
-
-filter {
-  json {
-    source => "message"
-  }
-}
-
-output {
-  stdout {
-    codec => rubydebug
-  }
-}
-```
-
-Note that this configuration will probably break on your system (listening to a <1024 port). You **should** change the "port" to a larger value.
