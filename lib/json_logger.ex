@@ -50,9 +50,10 @@ defmodule Logger.Backends.JSON do
 
     data = %{level: level, message: msg, pid: pid_str, node: node()}
     |> Map.merge(md |> Enum.map(&stringify_values/1) |> Enum.into(Map.new))
-    case Poison.encode(data) do
-     {:ok, data} -> data
-     {:error, err} ->
+    try do
+      Poison.encode!(data)
+    rescue
+      err ->
         IO.puts("Failed to JSON encode log message:")
         IO.puts(inspect data)
         IO.puts("Error:")
