@@ -49,7 +49,7 @@ defmodule Logger.Backends.JSON do
     pid_str = :io_lib.fwrite('~p', [md[:pid]]) |> to_string
 
     data = %{level: level, message: msg, pid: pid_str, node: node()}
-    |> Map.merge(md |> Iteraptor.to_flatmap |> Enum.map(&stringify_values/1) |> Enum.into(Map.new))
+    |> Map.merge(md |> Iteraptor.to_flatmap("/") |> Enum.map(&stringify_values/1) |> Enum.into(Map.new))
     try do
       Poison.encode!(data)
     rescue
