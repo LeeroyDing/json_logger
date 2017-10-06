@@ -2,6 +2,7 @@ defmodule Logger.Backends.JSON do
   use GenEvent
 
   def init(_) do
+    :error_logger.add_report_handler(Logger.Error.JSON)
     if user = Process.whereis(:user) do
       Process.group_leader(self(), user)
       {:ok, configure([])}
