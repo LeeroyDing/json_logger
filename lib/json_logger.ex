@@ -63,7 +63,7 @@ defmodule Logger.Backends.JSON do
   end
   
   defp event_json(level, msg, ts, md) do
-    event_json(level, inspect(msg), ts, md)
+    event_json(level, :unicode.characters_to_binary(msg), ts, md)
   end
 
   defp prettify_keys({k, v}) when is_binary(k), do: {k |> String.replace("%", "."), v}
