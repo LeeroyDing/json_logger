@@ -49,7 +49,11 @@ defmodule Logger.Backends.JSON do
     pid_str = :io_lib.fwrite('~p', [md[:pid]]) |> to_string
 
     data = %{level: level, message: msg, pid: pid_str, node: node()}
-    |> Map.merge(md |> Iteraptor.to_flatmap("/") |> Enum.map(&stringify_values/1) |> Enum.into(Map.new))
+    |> Map.merge(md
+                 |> Iteraptor.to_flatmap("_")
+                 |> Enum.map(&prettify_keys/1)
+                 |> Enum.map(&stringify_values/1)
+                 |> Enum.into(Map.new))
     try do
       Poison.encode!(data)
     rescue
@@ -61,6 +65,9 @@ defmodule Logger.Backends.JSON do
   defp event_json(level, msg, ts, md) do
     event_json(level, inspect(msg), ts, md)
   end
+
+  defp prettify_keys({k, v}) when is_binary(k), do: {k |> String.replace("%", "."), v}
+  defp prettify_keys({k, v}), do: {k, v}
 
   defp stringify_values({k, v}) when is_binary(v), do: {k, v}
   defp stringify_values({k, v}), do: {k, inspect(v)}
