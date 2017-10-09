@@ -52,6 +52,7 @@ defmodule Logger.Backends.JSON do
     data = %{level: level, message: msg, pid: pid_str, node: node()}
     |> Map.merge(md
                  |> Iteraptor.to_flatmap("_")
+                 |> Enum.filter(&filter_keys/1)
                  |> Enum.map(&prettify_keys/1)
                  |> Enum.map(&stringify_values/1)
                  |> Enum.into(Map.new))
@@ -66,6 +67,9 @@ defmodule Logger.Backends.JSON do
   defp event_json(level, msg, ts, md) do
     event_json(level, :unicode.characters_to_binary(msg), ts, md)
   end
+
+  defp filter_keys({k, v}) when is_binary(k), do: !String.contains?(k, "__")
+  defp filter_keys({k, v}), do: {k, v}
 
   defp prettify_keys({k, v}) when is_binary(k), do: {k |> String.replace("%", "."), v}
   defp prettify_keys({k, v}), do: {k, v}
