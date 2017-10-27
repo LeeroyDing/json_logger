@@ -12,7 +12,7 @@ defmodule Logger.Error.JSON do
   def handle_event({kind, _, _} = msg, state) when kind in [:error, :error_report] do
     msg
     |> inspect
-    |> String.replace("\n", "")
+    |> String.replace("\n", "\r")
     |> Logger.error
     {:ok, state}
   end
