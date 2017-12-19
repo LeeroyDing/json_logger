@@ -51,9 +51,8 @@ defmodule Logger.Backends.JSON do
     data = %{level: level, message: msg, pid: pid_str, node: node()}
     |> Map.merge(md
                  |> Iteraptor.to_flatmap("_")
-                 |> Enum.filter(&filter_keys/1)
-                 |> Enum.map(&prettify_keys/1)
-                 |> Enum.map(&stringify_values/1)
+                 |> Stream.filter(&filter_keys/1)
+                 |> Stream.map(&(&1 |> prettify_keys |> stringify_values))
                  |> Enum.into(Map.new))
     try do
       Poison.encode!(data)
@@ -62,13 +61,13 @@ defmodule Logger.Backends.JSON do
     end
 
   end
-  
+
   defp event_json(level, msg, ts, md) do
     event_json(level, :unicode.characters_to_binary(msg), ts, md)
   end
 
-  defp filter_keys({k, v}) when is_binary(k), do: !String.contains?(k, "__")
-  defp filter_keys({k, v}), do: {k, v}
+  defp filter_keys({k, _}) when is_binary(k), do: !String.contains?(k, "__")
+  defp filter_keys({_, _}), do: true
 
   defp prettify_keys({k, v}) when is_binary(k), do: {k |> String.replace("%", "."), v}
   defp prettify_keys({k, v}), do: {k, v}
