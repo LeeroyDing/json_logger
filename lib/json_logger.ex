@@ -72,6 +72,6 @@ defmodule Logger.Backends.JSON do
   defp prettify_keys({k, v}) when is_binary(k), do: {k |> String.replace("%", "."), v}
   defp prettify_keys({k, v}), do: {k, v}
 
-  defp stringify_values({k, v}) when is_binary(v), do: {k, v}
+  defp stringify_values({k, v}) when is_binary(v) or is_integer(v), do: {k, v}
   defp stringify_values({k, v}), do: {k, inspect(v)}
 end
