@@ -1,5 +1,4 @@
 defmodule Logger.Backends.JSON do
-  alias Logger.Backends.JSON.TCPClient
   use GenEvent
 
   def init(_) do
@@ -26,28 +25,9 @@ defmodule Logger.Backends.JSON do
     {:ok, state}
   end
 
-  def terminate(_reason, %{output: {:udp, _host, _port, socket}}) do
-    :gen_udp.close(socket)
-    :ok
+  def handle_event(:flush, state) do
+    {:ok, state}
   end
-
-  def terminate(_reason, %{output: {:tcp, client}}) do
-    TCPClient.stop client
-    :ok
-  end
-  
-  ## Helpers
-
-  defp configure(options, %{output: {:udp, _host, _port, socket}}) do
-    :gen_udp.close(socket)
-    configure(options)
-  end
-  
-  defp configure(options, %{output: {:tcp, client}}) do
-    TCPClient.stop client
-    configure(options)
-  end
-  
   defp configure(options, _state) do
     configure(options)
   end
@@ -56,39 +36,42 @@ defmodule Logger.Backends.JSON do
     json_logger = Keyword.merge(Application.get_env(:logger, :json_logger, []), options)
     Application.put_env(:logger, :json_logger, json_logger)
 
-    level    = Keyword.get(json_logger, :level)
-    metadata = Keyword.get(json_logger, :metadata, [])
-    output   = Keyword.get(json_logger, :output, :console)
-    output = case output do
-               :console -> :console
-               {:udp, host, port} ->
-                 {:ok, socket} = :gen_udp.open 0
-                 host = host |> to_char_list
-                 {:udp, host, port, socket}
-               {:tcp, host, port} ->
-                 host = host |> to_char_list
-                 {:ok, tcp_client} = TCPClient.start_link(host, port)
-                 {:tcp, tcp_client}
-             end
-    %{metadata: metadata, level: level, output: output}
+    level = Keyword.get(json_logger, :level)
+
+    %{level: level, output: :console}
   end
 
-  defp log_event(level, msg, ts, md, %{metadata: metadata, output: :console}) do
-    IO.puts event_json(level, msg, ts, md, metadata)
+  defp log_event(level, msg, ts, md, %{output: :console}) do
+    IO.puts event_json(level, msg, ts, md)
   end
 
-  defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:udp, host, port, socket}}) do
-    json = event_json(level, msg, ts, md, metadata)
-    :gen_udp.send socket, host, port, [json]
-  end
-
-  defp log_event(level, msg, ts, md, %{metadata: metadata, output: {:tcp, client}}) do
-    json = event_json(level, msg, ts, md, metadata)
-    TCPClient.log_msg client, json
-  end
-
-  defp event_json(level, msg, _ts, md, metadata) do
+  defp event_json(level, msg, ts, md) when is_binary(msg) do
     pid_str = :io_lib.fwrite('~p', [md[:pid]]) |> to_string
-    JSON.encode! %{level: level, message: msg, pid: pid_str, module: md[:module], function: md[:function], line: md[:line], metadata: metadata}
+
+    data = %{level: level, message: msg, pid: pid_str, node: node()}
+    |> Map.merge(md
+                 |> Iteraptor.to_flatmap("_")
+                 |> Stream.filter(&filter_keys/1)
+                 |> Stream.map(&(&1 |> prettify_keys |> stringify_values))
+                 |> Enum.into(Map.new))
+    try do
+      Poison.encode!(data)
+    rescue
+      err -> event_json(level, "#{msg} (failed to serialize metadata: #{inspect err})", ts, %{})
+    end
+
   end
+
+  defp event_json(level, msg, ts, md) do
+    event_json(level, :unicode.characters_to_binary(msg), ts, md)
+  end
+
+  defp filter_keys({k, _}) when is_binary(k), do: !String.contains?(k, "__")
+  defp filter_keys({_, _}), do: true
+
+  defp prettify_keys({k, v}) when is_binary(k), do: {k |> String.replace("%", "."), v}
+  defp prettify_keys({k, v}), do: {k, v}
+
+  defp stringify_values({k, v}) when is_binary(v) or is_integer(v), do: {k, v}
+  defp stringify_values({k, v}), do: {k, inspect(v)}
 end
