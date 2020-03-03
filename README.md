@@ -30,7 +30,7 @@ Example configuration: `config :logger, :json_logger, level: :info, output: {:ud
 
 You should add `json_logger` to your `mix.exs` as well. This step may not be necessary (if you know why please tell me).
 
-```
+```elixir
 defmodule MyMod.Mixfile do
   # ...
   def application do
@@ -45,7 +45,7 @@ end
 
 You need to add this backend to your `Logger`, preferably put this in your `Application`'s `start/2`.
 
-```
+```elixir
 Logger.add_backend Logger.Backends.JSON
 ```
 
